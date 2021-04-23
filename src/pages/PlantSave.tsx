@@ -2,32 +2,23 @@ import React, { useState } from 'react';
 import { View, Alert, TouchableOpacity, Text, Image, ScrollView, Platform, StyleSheet } from 'react-native';
 import { getBottomSpace } from 'react-native-iphone-x-helper';
 import {SvgFromUri} from 'react-native-svg';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import DateTimePicker, {Event} from '@react-native-community/datetimepicker'
-import {isBefore} from 'date-fns';
+import {isBefore, format} from 'date-fns';
 
 import waterDrop from '../assets/waterdrop.png';
 import { Button } from '../components/Button';
 import colors from '../../styles/colors';
 import fonts from '../../styles/fonts';
+import { PlantProps, plantSave } from '../libs/storage';
 
 interface Params{
-    plant: {
-        id: number;
-        name: string;
-        about: string;
-        water_tips: string;
-        photo: string;
-        environments: [string];
-        frequency: {
-            times: number,
-            repeat_every: string;
-        }
-    }
+    plant: PlantProps
 }
 
 export function PlantSave(){
-    const route = useRoute();
+    const navigation = useNavigation();
+    const route = useRoute();    
     const {plant} = route.params as Params;
     const [selectedDateTime, setSelectedDateTime] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(Platform.OS === 'ios');
@@ -44,6 +35,29 @@ export function PlantSave(){
 
         if(dateTime)
             setSelectedDateTime(dateTime);
+    }
+
+    function handleOpenDateTimerPickerAndroid(){
+        setShowDatePicker(oldState => !oldState);
+    }
+
+    async function handleSave(){
+        try {
+            await plantSave({
+                ...plant,
+                dateTimeNotification: selectedDateTime
+            });
+
+            navigation.navigate('Confirmation', {
+                title: "Tudo certo",
+                subtitle: "Fique tranquilo que sempre vamos lembrar você de cuidar da sua plantinha com muito cuidado.",
+                buttonTitle: "Muito obrigado",
+                icon: 'hug',
+                nextScreen: 'MyPlants'
+            });    
+        } catch (error) {
+            Alert.alert('Não foi possível salvar essa planta 😢')
+        }
     }
 
   return (
@@ -76,14 +90,26 @@ export function PlantSave(){
                 Escolha o mlehor horário pra ser lembrado: 
             </Text>
 
-            <DateTimePicker 
-                value={selectedDateTime}
-                mode="time"
-                display="spinner"
-                onChange={handleChangeTime}
-            />
+            {showDatePicker && (
+                <DateTimePicker 
+                    value={selectedDateTime}
+                    mode="time"
+                    display="spinner"
+                    onChange={handleChangeTime}
+                />
+            )}
 
-            <Button title="Cadastrar planta" onPress={() => {}}/>
+            {
+                Platform.OS === 'android' && (
+                    <TouchableOpacity style={styles.dateTimePickerButton} onPress={handleOpenDateTimerPickerAndroid}>
+                        <Text style={styles.dateTimePickerText}>
+                            {`Mudar ${format(selectedDateTime, 'HH:mm')}`}
+                        </Text>
+                    </TouchableOpacity>
+                )
+            }
+
+            <Button title="Cadastrar planta" onPress={handleSave}/>
         </View>
     </View>
   );
@@ -130,7 +156,7 @@ const styles = StyleSheet.create({
         padding: 20,
         borderRadius: 20,
         position: 'relative',
-        bottom: 60
+        bottom: 50
     },
     tipImage: {
         width: 56,
@@ -150,5 +176,15 @@ const styles = StyleSheet.create({
         color: colors.heading,
         fontSize: 12,
         marginBottom: 5
+    },
+    dateTimePickerButton:{
+        width: "100%",
+        alignItems: "center",
+        paddingVertical: 40,
+    },
+    dateTimePickerText: {
+        color: colors.heading,
+        fontSize: 24,
+        fontFamily: fonts.text
     }
 });

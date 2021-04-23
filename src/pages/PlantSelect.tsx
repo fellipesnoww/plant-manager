@@ -9,23 +9,11 @@ import { EnvironmentButton } from '../components/EnvironmentButton';
 import { PlantCardPrimary } from '../components/PlantCardPrimary';
 import { Load } from '../components/Load';
 import { useNavigation } from '@react-navigation/native';
+import { PlantProps } from '../libs/storage';
 
 interface EnvironmentProps{
     key: string;
     title: string
-}
-
-interface PlantProps{
-    id: number;
-    name: string;
-    about: string;
-    water_tips: string;
-    photo: string;
-    environments: [string];
-    frequency: {
-        times: number,
-        repeat_every: string;
-    }
 }
 
 export function PlantSelect(){
